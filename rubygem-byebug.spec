@@ -5,7 +5,7 @@
 
 Name:		%{?scl_prefix}rubygem-%{gem_name}
 Version:	8.2.2
-Release:	2%{?dist}
+Release:	3%{?dist}
 
 Summary:	Ruby 2.0 fast debugger - base + CLI
 License:	BSD
@@ -22,9 +22,8 @@ BuildRequires: %{?scl_prefix_ruby}rubygems-devel
 BuildRequires: %{?scl_prefix_ruby}ruby-devel
 BuildRequires: %{?scl_prefix_ruby}rubygem(minitest) >= 5
 BuildRequires: %{?scl_prefix}rubygem(mocha)
-# Missing dependencies for tests
-#BuildRequires: %{?scl_prefix}rubygem(columnize)
-#BuildRequires: %{?scl_prefix}rubygem(simplecov)
+BuildRequires: %{?scl_prefix}rubygem(columnize)
+BuildRequires: %{?scl_prefix}rubygem(simplecov)
 Provides:      %{?scl_prefix}rubygem(%{gem_name}) = %{version}
 
 %description
@@ -77,7 +76,9 @@ cp -pa .%{_bindir}/* \
 find %{buildroot}%{gem_instdir}/bin -type f | xargs chmod a+x
 
 %check
-export GEM_PATH=%{gem_dir}:%{buildroot}/%{gem_dir}
+%{?scl:scl enable %{scl} - << \EOF}
+set -e
+export GEM_PATH=%{gem_dir}:%{buildroot}/%{gem_dir}:$GEM_PATH
 
 remove_fail_test() {
 	filename=$1
@@ -98,12 +99,8 @@ cp -a %{gem_name}-%{version}/{test,script} .%{gem_instdir}
 pushd .%{gem_instdir}
 
 # Once test all
-%{?scl:scl enable %{scl} - << \EOF}
 ruby -I.:lib:ext script/minitest_runner.rb || :
-%{?scl:EOF}
 
-# Tests fail, investigate
-%if 0
 remove_fail_test test/commands/frame_test.rb \
 	test_frame_minus_one_sets_frame_to_the_last_one
 remove_fail_test test/commands/next_test.rb \
@@ -111,11 +108,9 @@ remove_fail_test test/commands/next_test.rb \
 remove_fail_test test/commands/finish_test.rb \
 	test_finish_does_not_stop_in_byebug_internal_frames
 
-%{?scl:scl enable %{scl} - << \EOF}
 ruby -I.:lib:ext script/minitest_runner.rb
-%{?scl:EOF}
-%endif
 popd
+%{?scl:EOF}
 
 %files
 %dir	%{gem_instdir}
@@ -139,6 +134,9 @@ popd
 %doc	%{gem_docdir}
 
 %changelog
+* Wed Apr 06 2016 Pavel Valena <pvalena@redhat.com> - 8.2.2-3
+- Enable tests
+
 * Wed Mar 02 2016 Pavel Valena <pvalena@redhat.com> - 8.2.2-2
 - Add scl macros
 
